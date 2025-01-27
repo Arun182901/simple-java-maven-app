@@ -1,30 +1,35 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3-alpine'
-            args '-v /root/.m2:/root/.m2'
-        }
-    }
+    agent any
+
     stages {
-        stage('Build') {
+        
+        stage('Fetching Code') {
             steps {
-                sh 'mvn -B -DskipTests clean package'
+                git 'https://github.com/Arun182901/simple-java-maven-app.git'
             }
         }
-        stage('Test') {
+        
+        stage('Install Maven') {
             steps {
-                sh 'mvn test'
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
+                script {
+                    // Check if Maven is already installed
+                    def mavenInstalled = sh(script: 'mvn -v', returnStatus: true)
+                    if (mavenInstalled != 0) {
+                        echo "Maven is not installed. Installing..."
+                        sh 'sudo apt update -y && sudo apt install maven -y'
+                    } else {
+                        echo "Maven is already installed."
+                    }
                 }
             }
         }
-        stage('Deliver') {
+
+        stage('Build Package') {
             steps {
-                sh './jenkins/scripts/deliver.sh'
+                echo "Building the package with Maven..."
+                sh 'sudo mvn clean package'
             }
         }
+
     }
 }
